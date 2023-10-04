@@ -1,5 +1,19 @@
 # coding = utf-8
 import os
+class Config:
+    """App configuration."""
+
+    JOBS = [
+        {
+            'id': 'job1',
+            'func': 'scheduler:get_access_code',
+            'trigger': 'interval',
+            'seconds': 7200
+        }
+    ]
+
+    SCHEDULER_API_ENABLED = True
+    SQLALCHEMY_DATABASE_URI = "sqlite:///secondhand.db"
 
 DEBUG = True
 
@@ -20,4 +34,3 @@ MAX_CONTENT_LENGTH = 16 * 1024 * 1024
 # SQLALCHEMY_TRACK_MODIFICATIONS = False
 
 # SQLite配置
-SQLALCHEMY_DATABASE_URI = "sqlite:///secondhand.db"
