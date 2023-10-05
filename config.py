@@ -8,7 +8,7 @@ class Config:
             'id': 'job1',
             'func': 'scheduler:get_access_code',
             'trigger': 'interval',
-            'seconds': 7200
+            'seconds': 100
         }
     ]
 

@@ -6,9 +6,9 @@ HEADERS = {
   "typ": "JWT"
 }
 SALT = "kbugvsvzvbqapqrk"
-EXPIRE_TIME = 300
+EXPIRE_TIME = 7200
 
-def gen_token(uid,name):
+def gen_token(uid,name)->str:
   exp = int(time.time() + EXPIRE_TIME)
   payload = {
   "id":uid ,

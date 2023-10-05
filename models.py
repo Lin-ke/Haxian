@@ -11,6 +11,7 @@ class User(db.Model):
     id = Column(Integer, primary_key=True,autoincrement=True)
     # 头像url
     name = Column(String(64))
+    # 华为id
     wild = Column(String(64),unique = True)
     img_url = Column(Text, default="456")
     phone = Column(Integer)
@@ -50,4 +51,4 @@ class Reply(db.Model):
     # json:id，url
     pics = Column(Text)
     text = Column(Text)
-
+    date = Column(DateTime)
