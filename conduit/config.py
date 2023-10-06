@@ -3,22 +3,16 @@ import os
 class Config:
     """App configuration."""
 
-    JOBS = [
-        {
-            'id': 'job1',
-            'func': 'scheduler:get_access_code',
-            'trigger': 'interval',
-            'seconds': 100
-        }
-    ]
+
 
     SCHEDULER_API_ENABLED = True
     SQLALCHEMY_DATABASE_URI = "sqlite:///secondhand.db"
 
-DEBUG = True
+class ProdConfig(Config):
+    DEBUG = True
 
-SECRET_KEY = os.urandom(24)
-MAX_CONTENT_LENGTH = 16 * 1024 * 1024
+    SECRET_KEY = os.urandom(24)
+    MAX_CONTENT_LENGTH = 16 * 1024 * 1024
 
 # mysql配置
 # DIALECT = "mysql"

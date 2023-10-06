@@ -2,8 +2,7 @@ from datetime import datetime
 from sqlalchemy import  Column, Integer, String, Float, Boolean, DECIMAL, Enum, Date, DateTime, Time, Text, ForeignKey
 from sqlalchemy.dialects.mysql import LONGTEXT
 from flask_sqlalchemy import SQLAlchemy
-from app import db
-
+from .extensions import db
 
 class User(db.Model):
     __table_args__ = {'extend_existing': True}
@@ -12,13 +11,15 @@ class User(db.Model):
     # 头像url
     name = Column(String(64))
     # 华为id
-    wild = Column(String(64),unique = True)
+    wild = Column(String(64),unique = True, nullable=False)
     img_url = Column(Text, default="456")
     phone = Column(Integer)
     email = Column(String(64))
     wx = Column(String(64))
     qq = Column(Integer)
     # 用途：快捷填入
+    def __repr__(self):
+        return f'<User {self.name!r}>'
 class Post(db.Model):
     __table_args__ = {'extend_existing': True}
     __tablename__ = 'post'

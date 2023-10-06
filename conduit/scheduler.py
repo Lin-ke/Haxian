@@ -1,5 +1,5 @@
 import os,requests,json
-
+from .logger import logger
 access_url = "https://open.welink.huaweicloud.com/api/auth/v2/tickets"
 access_body = {
     "client_id": "20230925224247033213466",
@@ -8,7 +8,6 @@ access_body = {
 access_head = {
     "Content-Type": "application/json"
 }
-
 def get_access_code():
     reply = requests.post(access_url,headers=access_head, data=json.dumps(access_body))
     text = reply.text
@@ -19,9 +18,9 @@ def get_access_code():
         # Save
         with open('./saved/access_token.txt','w') as f:
             f.write(acctoken)
-            print("saved access_token.txt")
+            logger.info("saved access_token.txt")
     else:
-        print("Error: ",jobj['code'],jobj['message'])
+        logger.info("Error: ",jobj['code'],jobj['message'])
 
 
 if __name__ == "__main__":
