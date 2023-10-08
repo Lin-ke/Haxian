@@ -2,6 +2,8 @@ from flask import Blueprint, session, request,g,Response,jsonify
 import json
 from api import auth
 token_api = Blueprint('token_api', __name__)
+from conduit.database import db
+from conduit.models import User
 import requests
 def get_wlid_hw(code) -> (bool, str):
     with open("./saved/access_token.txt", "r") as f:
@@ -18,23 +20,22 @@ def get_wlid_hw(code) -> (bool, str):
         return False, r.get('message', "unknown error")
     return True, r['userId']
 
-@token_api.route('/api/getTokenByCode') 
-def get_token_by_code():
-    # Because the *code* changes per call, we don't save it.
-    code = request.headers.get('Authorization')
-    
+@token_api.route('/api/login') 
+def login():
+    if request.method == "GET":
+        # Because the *code* changes per call, we don't save it.
+        code = request.args.get("code",default="",type=str)
     if code == "":
         return jsonify({"err": 1, "message" : "provide code"})
-    
-
-    result, info = get_wlid_hw(code)
+    result, wlid = get_wlid_hw(code)
     if not result:
-        return jsonify({"err": 1, "message" : info})
-    
+        return jsonify({"err": 1, "message" : "Unknown"})
     # db select uid and name
-    #####
-
-    ####
+    result = db.session.query(User).filter(User.wlid == wlid).first()
+    if result == None:
+        db.session.add(User(wlid = wlid,name = "New user"))
+        db.session.commit()
+        result = db.session.query(User).filter(User.wlid == wlid).first()
     return jsonify(
         {"err": 0,
-        "authorization":auth.gen_token(info, "hw")})
+        "token":auth.gen_token(result.uid, result.name)})

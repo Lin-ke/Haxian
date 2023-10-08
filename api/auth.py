@@ -26,13 +26,13 @@ def verify_token(token):
   except:
      return False,{}
   
-def update_token(old_token)->str:
+def update_token(old_token)->tuple[str, dict]:
   result,info = verify_token(old_token)
   if result:
     if time.time()-info.exp < EXPIRE_TIME//2:
       new_token = gen_token(info["uid"],info["name"])
-      return new_token
+      return new_token,info
     else:
-        return ""
+        return "",info
   else:
     raise
