@@ -36,13 +36,12 @@ def get_user_data():
         }
     )
 
-@server_api.route('/api/posts')
+@server_api.route('/api/posts',methods = ["POST"])
 def get_posts():
     try:
-        if request.method == "POST":
             data = request.json
             kind:int = data.get("kind")
-            keywords = data.get("kind")
+            keywords = data.get("keywords")
             category = data.get("category")
             items = db.session.query(Item).filter(Item.category == category).all()
             pids = []
@@ -56,51 +55,58 @@ def get_posts():
             return jsonify(posts_dict(results))
     except:
         return jsonify({"err" : 1})
-    return jsonify({"err" : 1})
 
 @server_api.route('/api/post')
 def get_post():
     try:
-        if request.method == "GET":
-            pid = request.args.get("pid")
-            post = db.session.query(Post).filter(Post.pid==pid).first()
-            results = post_dict(post)
-            if post.uid != g.uid:
-                results["replies"] = None
-    except:
+        pid = request.args.get("pid")
+        post = db.session.query(Post).filter(Post.pid==pid).first()
+        results = post_dict(post)
+        if post.uid != g.uid:
+            results["replies"] = None
+        return jsonify(results)
+    except Exception as e:
         return jsonify({"err" : 1})
-    return jsonify({"err" : 1})
 
-@server_api.route('/api/replies')
-def get_replies():
+@server_api.route('/api/user/replies')
+def get_replies_by_user():
     try:
         replies = db.session.query(Reply).join(Post).filter(Post.uid == g.uid).all()
         return jsonify(replies_dict(replies))
-    except:
+    except Exception as e:
         return jsonify({"err" : 1})
-
+    
+@server_api.route('/api/post/replies')
+def get_replies_by_post():
+    pid = request.args.get("pid")
+    try:
+        replies = db.session.query(Reply).join(Post).filter(Post.pid == pid).all()
+        return jsonify(replies_dict(replies))
+    except Exception as e:
+        return jsonify({"err" : 1})
+    
 @server_api.route('/api/reply')
 def get_reply():
     return jsonify({"err" : 1})
 
 # TODO 需要为item指定pid
-@server_api.route('/api/publish')
+@server_api.route('/api/publish',methods = ["POST"])
 def publish():
     try:
         data = request.json
-        new_post = Post(uid = g.uid,title = data["title"],text = data["text"],kind = data["kind"],date = datetime.datetime(time.localtime()))
+        new_post = Post(uid = g.uid,title = data["title"],text = data["text"],kind = data["kind"],date = datetime.datetime.now())
         db.session.add(new_post)
-        # db.session.commit()
+        db.session.commit()
         new_items = []
         for item in data["items"]:
-            new_items.append(Item(name = item["name"],text = item["text"],price = item['price'],category = item["category"]))
+            new_items.append(Item(name = item["name"],pid = new_post.pid,text = item["text"],price = item['price'],category = item["category"]))
         db.session.add_all(new_items)
         db.session.commit()
         return jsonify({"err" : 0})
-    except:
+    except Exception as e:
         return jsonify({"err" : 1}) 
 
-@server_api.route('/api/comment')
+@server_api.route('/api/comment',methods = ["POST"])
 def reply():
     try:
         data = request.json
@@ -108,11 +114,13 @@ def reply():
         items = db.session.query(Item).filter(Item.pid == pid).all()
         items = [item.iid for item in items]
         for item in data['items'].keys():
-            if item not in items:
-                raise
-        new_reply = Reply(text = data['text'],pid = pid,items = json.dump(data['items']))
+            if int(item) not in items:
+                return jsonify({"err" : 1})
+        new_reply = Reply(uid = g.uid, text = data['text'],pid = pid,items = json.dumps(data['items']),date = datetime.datetime.now())
+        db.session.add(new_reply)
+        db.session.commit()
         return jsonify({"err" : 0})
-    except:
+    except Exception as e:
         return jsonify({"err" : 1})
 
 @server_api.route('/api/editpost')
@@ -132,12 +140,13 @@ def hello():
                 g.token = nt
             else:
                 g.token = t
-        except:
+        except Exception as e:
             return jsonify({"err": 1})
     else:
         return jsonify({"err": 1})
 
 @server_api.after_request
-def bye(response:Response):
-    if g.get("token") is not None:
-        response.headers['Authorization'] = g.tokens
+def bye(response):
+    if g.get("token") != None:
+        response.headers['Authorization'] = g.get("token")
+    return response

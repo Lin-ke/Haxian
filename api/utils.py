@@ -10,10 +10,15 @@ def posts_dict(posts: List[Post])->dict:
 
 def post_dict(post:Post)->dict:
     temp = post.__dict__
+    temp.pop('_sa_instance_state')
     return temp
 
 def replies_dict(replies: List[Reply])->dict:
-    temp = replies.__dict__
+    temp = []
+    for r in replies:
+        t = r.__dict__
+        t.pop('_sa_instance_state')
+        temp.append(t)
     return temp
 
 def reply_dict(reply: Reply)->dict:

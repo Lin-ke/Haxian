@@ -47,7 +47,7 @@ class Reply(db.Model):
     rid = Column(Integer, primary_key=True,autoincrement=True)
     pid = Column(Integer, ForeignKey(Post.pid))
     uid = Column(Integer,ForeignKey(User.uid))
-    status = Column(Integer)
+    status = Column(Integer,default=1)
     # json:物品id，价格
     items = Column(Text)
     # json:id，url

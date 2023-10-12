@@ -28,12 +28,13 @@ def login():
     if code == "":
         return jsonify({"err": 1, "message" : "provide code"})
     result, wlid = get_wlid_hw(code)
+    print(result)
     if not result:
         return jsonify({"err": 1, "message" : "Unknown"})
     # db select uid and name
     result = db.session.query(User).filter(User.wlid == wlid).first()
     if result == None:
-        db.session.add(User(wlid = wlid,name = "New user"))
+        db.session.add(User(wlid = wlid,name = wlid.split("_")[0]))
         db.session.commit()
         result = db.session.query(User).filter(User.wlid == wlid).first()
     return jsonify(

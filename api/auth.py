@@ -6,12 +6,12 @@ HEADERS = {
   "typ": "JWT"
 }
 SALT = "kbugvsvzvbqapqrk"
-EXPIRE_TIME = 7200
+EXPIRE_TIME = 72000
 
 def gen_token(uid,name)->str:
   exp = int(time.time() + EXPIRE_TIME)
   payload = {
-  "id":uid ,
+  "uid":uid ,
   "name": name,
   "exp": exp
   }
@@ -29,7 +29,7 @@ def verify_token(token):
 def update_token(old_token)->tuple[str, dict]:
   result,info = verify_token(old_token)
   if result:
-    if time.time()-info.exp < EXPIRE_TIME//2:
+    if time.time()-info['exp'] > EXPIRE_TIME//2:
       new_token = gen_token(info["uid"],info["name"])
       return new_token,info
     else:

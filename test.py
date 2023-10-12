@@ -13,16 +13,27 @@ def db_test():
             user = User.query.filter_by(name='John{}'.format(str(i))).first()
             db.session.delete(user)
             db.session.commit()
-def token_test():
-    import requests
-    import json
-    headers = {"Authorization":
-                "CAB2EFD701E59C5AC34703B9A5BEDE4955643FA2030040F944D503EE6AFA5032FEFCD38964F1482703DCBEEDBF5A83C1"}
-    r = requests.get('http://localhost:5000/api/getTokenByCode',headers=headers)
-    print(r.text)
+
 def get_data_test():
     import requests
     import json
     r = requests.get('http://localhost:5000/api/getdata')
     print(r.text)
-get_data_test()
+def get_token_test():
+    import requests,json
+    args = {
+        "code" : "96CE5A7FD1F8C508C43DF7FE611004D9AC3C75C57738AF0DB2E0D6E63BC0C0255C6DB1CD14FD9EED2947C74F9A11CBB8"
+    }
+    r = requests.get('http://localhost:14535/api/login',params=args)
+    print(r.headers)
+    print(r.text)
+
+def db_droop_all():
+    from autoapp import app
+    from conduit.models import User
+    from conduit.database import db
+    with app.app_context():
+        db.drop_all()
+
+
+get_token_test()

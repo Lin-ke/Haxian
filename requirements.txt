@@ -1,7 +1,9 @@
 alembic==1.12.0
 Flask==3.0.0
 Flask_Migrate==4.0.5
-flask_sqlalchemy==3.1.1
+flask_sqlalchemy==3.0.5
+flask_apscheduler==1.12.0
 PyJWT==2.8.0
 PyJWT==2.8.0
 SQLAlchemy==2.0.21
+markupsafe==2.1.1
