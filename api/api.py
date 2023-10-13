@@ -61,9 +61,26 @@ def get_post():
     try:
         pid = request.args.get("pid")
         post = db.session.query(Post).filter(Post.pid==pid).first()
+        items = db.session.query(Item).filter(Item.pid == pid).all()
+        replies = db.session.query(Reply).filter(Reply.pid == pid).all()
+        want_cnt={}
+        want_price = {}
+        results_replies = replies_dict(replies)
+        for item in items:
+            want_cnt[item.iid] = 0
+            want_price[item.iid] = {}
+        for reply in results_replies:
+            reply_items = json.loads(reply['items'])
+            for item in reply_items.keys():
+                want_cnt[item]+=1
+                want_price[item][reply['uid']] = reply_items[item]
         results = post_dict(post)
         if post.uid != g.uid:
-            results["replies"] = None
+            results["replies"] = []
+        else:
+            results["replies"] = results_replies
+        results["want_cnt"] = want_cnt
+        results["want_price"] = want_price
         return jsonify(results)
     except Exception as e:
         return jsonify({"err" : 1})
@@ -125,7 +142,24 @@ def reply():
 
 @server_api.route('/api/editpost')
 def editpost():
-    return jsonify({"err" : 1})
+    try:
+        data = request.json
+        pid = data['pid']
+        modified_items = data["items"]  # 键值对
+        status = data["status"]
+        post = db.session.query(Post).filter(Post.pid==pid).first()
+        if post.status == 2:
+            raise
+        if status == 2:
+            post = db.session.query(Post).filter(Post.pid==pid).update({Post.status:2})
+            db.session.commit()
+            return jsonify({"err" : 0})
+        items = db.session.query(Item)
+        for iid,s in modified_items.items():
+            items.filter(Item.iid == iid).update({Item.status :s})
+            db.session.commit()
+    except Exception as e:
+        return jsonify({"err" : 1})
 
 
 @server_api.before_request

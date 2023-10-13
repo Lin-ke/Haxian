@@ -1,5 +1,6 @@
 from typing import List
 from conduit.models import User,Post,Item,Reply
+import json
 
 def posts_dict(posts: List[Post])->dict:
     ret = []
@@ -18,6 +19,7 @@ def replies_dict(replies: List[Reply])->dict:
     for r in replies:
         t = r.__dict__
         t.pop('_sa_instance_state')
+        t["items"] = json.loads(t["items"])
         temp.append(t)
     return temp
 
