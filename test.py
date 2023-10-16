@@ -35,5 +35,34 @@ def db_droop_all():
     with app.app_context():
         db.drop_all()
 
+def test_minio():
+    from minio import Minio
+    import os
+    client = Minio(
+	# endpoint指定的是你Minio的远程IP及端口
+    # localhost:39.107.83.124
+	endpoint = "localhost:9000",
+	# accesskey指定的是你的Minio服务器访问key
+	# 默认值为minioadmin
+	access_key= "123",
+	# secret_key指定的是你登录时需要用的key，类似密码
+	# 默认值也是minioadmin
+	secret_key= "12345678",
+	# secure指定是否以安全模式创建Minio连接
+	# 建议为False
+	secure= False)
+    with open("./pics/xt.jpg", "rb") as f:
+        bytes_len = os.path.getsize("./pics/xt.jpg")
+        client.put_object("test","xt.jpg",f,bytes_len)
+    url = client.presigned_get_object("test", "xt.jpg")
+    print(url)
+def init_minio():
+    from conduit.extensions import client
+    client.make_bucket("reply")
+    client.make_bucket("post")
+    client.make_bucket("item")
+    client.make_bucket("user")
 
-get_token_test()
+
+
+init_minio()
