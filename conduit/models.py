@@ -32,6 +32,7 @@ class Post(db.Model):
     status = Column(Integer,default=1) # 发出/关闭
     location = Column(String(20))
     date = Column(DateTime)
+    search = Column(Text)
 class Item(db.Model):
     __tablename__ = 'item'
     iid = Column(Integer, primary_key=True,autoincrement=True)

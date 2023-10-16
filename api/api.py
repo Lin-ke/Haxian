@@ -1,7 +1,8 @@
 from typing import Dict
 from flask import Blueprint, session, request,g,Response,jsonify
 import json
-from sqlalchemy import select
+from sqlalchemy import select,or_
+from sqlalchemy import func
 from api import auth
 from conduit.database import db
 from conduit.models import User,Post,Item,Reply,Favorite
@@ -9,6 +10,14 @@ from conduit.logger import logger
 from api.utils import *
 import datetime
 import time
+
+POST_OPEN = 1
+POST_CLOSE = 2
+ITEM_OPEN = 1
+ITEM_CLOSE = 2
+FAV_YES = 1
+FAV_NO = 2
+
 server_api = Blueprint('api_data', __name__)
 # return : id, name (test)
 @server_api.route('/api/getdata')
@@ -43,14 +52,15 @@ def get_posts():
             kind:int = data.get("kind")
             keywords = data.get("keywords")
             category = data.get("category")
-            items = db.session.query(Item).filter(Item.category == category).all()
-            pids = []
-            for item in items:
-                pids.append(item.__dict__["pid"])
-            posts = db.session.query(Post).filter(Post.pid.in_(pids))
-            posts = posts.filter(Post.kind == kind)
+            posts = db.session.query(Post).filter(Post.kind == kind).filter(Post.status == POST_OPEN)
+            if category!=None:
+                items = db.session.query(Item).filter(Item.category == category).filter(Item.status == ITEM_OPEN).all()
+                pids = []
+                for item in items:
+                    pids.append(item.__dict__["pid"])
+                posts = posts.filter(Post.pid.in_(pids))
             for keyword in keywords:
-                posts.filter(Post.text.like(f"%{keyword}%"))
+                posts.filter(or_(Post.text.like(f"%{keyword}%"),Post.search.like(f"%{keyword}%")))
             results = posts.all()
             return jsonify(posts_dict(results))
     except:
@@ -117,7 +127,9 @@ def publish():
         db.session.add(new_post)
         db.session.commit()
         new_items = []
+        search = data["title"]+data["location"]
         for item in data["items"]:
+            search+=item["name"]+item["text"]+item["category"]
             new_items.append(Item(name = item["name"],pid = new_post.pid,text = item["text"],price = item['price'],category = item["category"]))
         db.session.add_all(new_items)
         db.session.commit()
@@ -150,10 +162,10 @@ def editpost():
         modified_items = data["items"]  # 键值对
         status = data["status"]
         post = db.session.query(Post).filter(Post.pid==pid).first()
-        if post.status == 2:
+        if post.status == POST_CLOSE:
             raise
-        if status == 2:
-            post = db.session.query(Post).filter(Post.pid==pid).update({Post.status:2})
+        if status == POST_CLOSE:
+            post = db.session.query(Post).filter(Post.pid==pid).update({Post.status:POST_CLOSE,Post.search:""})
             db.session.commit()
             return jsonify({"err" : 0})
         items = db.session.query(Item)
@@ -168,8 +180,8 @@ def editpost():
 def editfav():
     try:
         data = request.json
-        status = data["status"]
-        if status == 1:
+        fav = data["fav"]
+        if fav == FAV_YES:
             # 加入收藏
             pid = data['pid']
             post = db.session.query(Post).filter(Post.pid==pid).first()
@@ -178,7 +190,7 @@ def editfav():
             new_fav = Favorite(uid = g.uid, pid = post.pid,date = datetime.datetime.now())
             db.session.add(new_fav)
             db.session.commit()
-        if status == 2:
+        if fav == FAV_NO:
             # 取消收藏
             pid = data['pid']
             favor = db.session.query(Favorite).filter(Favorite.pid == pid).first()
