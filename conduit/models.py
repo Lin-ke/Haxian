@@ -54,3 +54,9 @@ class Reply(db.Model):
     pics = Column(Text)
     text = Column(Text)
     date = Column(DateTime)
+class Favorite(db.Model):
+    __tablename__ = "favorite"
+    fid = Column(Integer, primary_key=True,autoincrement=True)
+    pid = Column(Integer, ForeignKey(Post.pid))
+    uid = Column(Integer,ForeignKey(User.uid))
+    date = Column(DateTime)

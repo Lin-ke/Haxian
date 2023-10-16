@@ -4,7 +4,7 @@ import json
 from sqlalchemy import select
 from api import auth
 from conduit.database import db
-from conduit.models import User,Post,Item,Reply
+from conduit.models import User,Post,Item,Reply,Favorite
 from conduit.logger import logger
 from api.utils import *
 import datetime
@@ -63,6 +63,7 @@ def get_post():
         post = db.session.query(Post).filter(Post.pid==pid).first()
         items = db.session.query(Item).filter(Item.pid == pid).all()
         replies = db.session.query(Reply).filter(Reply.pid == pid).all()
+        favorite = db.session.query(Favorite).filter(Favorite.uid == g.uid).filter(Favorite.pid == pid).first()
         want_cnt={}
         want_price = {}
         results_replies = replies_dict(replies)
@@ -79,6 +80,7 @@ def get_post():
             results["replies"] = []
         else:
             results["replies"] = results_replies
+        results["is_favorite"] = favorite is not None        
         results["want_cnt"] = want_cnt
         results["want_price"] = want_price
         return jsonify(results)
@@ -161,6 +163,33 @@ def editpost():
     except Exception as e:
         return jsonify({"err" : 1})
 
+### favorite
+@server_api.route("/api/editfavorite")
+def editfav():
+    try:
+        data = request.json
+        status = data["status"]
+        if status == 1:
+            # 加入收藏
+            pid = data['pid']
+            post = db.session.query(Post).filter(Post.pid==pid).first()
+            if post is None:
+                return jsonify({"err" : 1})
+            new_fav = Favorite(uid = g.uid, pid = post.pid,date = datetime.datetime.now())
+            db.session.add(new_fav)
+            db.session.commit()
+        if status == 2:
+            # 取消收藏
+            pid = data['pid']
+            favor = db.session.query(Favorite).filter(Favorite.pid == pid).first()
+            db.session.delete(favor)
+            db.session.commit()
+        return jsonify({"err" : 0})
+    except Exception as e:
+        return jsonify({"err" : 1})
+        
+
+###
 
 @server_api.before_request
 def hello():

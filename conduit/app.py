@@ -45,7 +45,7 @@ def register_extensions(app):
     logger.info("start server. init finished.")
 def register_models(app):
         # 注册Models
-    from .models import User,Post,Item,Reply
+    from .models import User,Post,Item,Reply,Favorite
 
 def register_blueprints(app):
     """Register Flask blueprints."""
