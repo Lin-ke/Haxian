@@ -22,7 +22,7 @@ def get_data_test():
 def get_token_test():
     import requests,json
     args = {
-        "code" : "96CE5A7FD1F8C508C43DF7FE611004D9AC3C75C57738AF0DB2E0D6E63BC0C0255C6DB1CD14FD9EED2947C74F9A11CBB8"
+        "code" : "1FD242211E8F72E543166C95EA0A78C47F07D64AF526734D5A5F9F9280B29B55929D281E2B31C5AA0AEEB68E02CF28EE"
     }
     r = requests.get('http://localhost:14535/api/login',params=args)
     print(r.headers)
@@ -87,4 +87,4 @@ def init_minio():
 
 
 
-init_minio()
+get_token_test()

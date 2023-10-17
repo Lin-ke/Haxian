@@ -5,16 +5,15 @@ from minio import Minio
 from hashlib import sha256
 import io
 from conduit.extensions import client
-
+self_host = "http://39.107.83.124:9000"
 minio_conf = {
     'endpoint': '0.0.0.0:9000',
     'access_key': 'admin',
     'secret_key': '123456',
     'secure': False
 }
-REPLY_PICS_BKT = ""
-POST_PICS_BKT = ""
-IMAGE_MIME = "image/jpeg"
+REPLY_PICS_BKT = "reply"
+POST_PICS_BKT = "post"
 
 
 def posts_dict(posts: List[Post])->dict:
@@ -28,6 +27,19 @@ def post_dict(post:Post)->dict:
     temp = post.__dict__
     temp.pop('_sa_instance_state')
     temp.pop("search")
+    temp["pics"] = json.loads(temp["pics"])
+    return temp
+
+def posts_user_dict(posts: List)->dict:
+    ret = []
+    for p in posts:
+        temp = post_user_dict(p)
+        ret.append(temp)
+    return ret
+
+def post_user_dict(post)->dict:
+    temp = post_dict(post[0])
+    temp["userName"] = post[1]
     return temp
 
 def replies_dict(replies: List[Reply])->dict:
@@ -45,7 +57,6 @@ def reply_dict(reply: Reply)->dict:
 def upload_to_minio(obj:bytes,bucket:str) -> str:
     name = sha256(obj).hexdigest()
     obj_stream = io.BytesIO(obj)
-    client.put_object(bucket_name=bucket, object_name=name,
-                       data=obj_stream,
-                       content_type=IMAGE_MIME)
-    return name
+    result= client.put_object(bucket_name=bucket, object_name=name,
+                       data=obj_stream, length=len(obj))
+    return bucket+ "/" + name

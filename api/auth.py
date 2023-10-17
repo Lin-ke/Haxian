@@ -23,7 +23,8 @@ def verify_token(token):
   try:
       info = jwt.decode(token, SALT, algorithms=["HS256"])
       return True,info
-  except:
+  except Exception as e:
+     print(e)
      return False,{}
   
 def update_token(old_token)->tuple[str, dict]:

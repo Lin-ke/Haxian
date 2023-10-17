@@ -8,6 +8,7 @@ from conduit.models import User,Post,Item,Reply,Favorite
 from api.utils import *
 import datetime
 from conduit.extensions import client
+from flask_cors import cross_origin
 
 POST_OPEN = 1
 POST_CLOSE = 2
@@ -53,7 +54,7 @@ def get_posts():
             category = None
             num = data.get("num")
             start = data.get("start")
-            posts = db.session.query(Post).filter(Post.kind == kind).filter(Post.status == POST_OPEN)
+            posts = db.session.query(Post, User.name).join(Post, Post.uid == User.uid).filter(Post.kind == kind).filter(Post.status == POST_OPEN)
             if category!=None:
                 items = db.session.query(Item).filter(Item.category == category).filter(Item.status == ITEM_OPEN).all()
                 pids = []
@@ -63,7 +64,7 @@ def get_posts():
             for keyword in keywords:
                 posts.filter(or_(Post.text.like(f"%{keyword}%"),Post.search.like(f"%{keyword}%")))
             results = posts.order_by(Post.pid.desc()).limit(num).offset(start).all()
-            return jsonify(posts_dict(results))
+            return jsonify(posts_user_dict(results))
     except:
         return jsonify({"err" : 1})
 
@@ -121,18 +122,27 @@ def get_reply():
 
 # TODO 需要为item指定pid
 @server_api.route('/api/publish',methods = ["POST"])
-def publish():
+def publish(): 
     try:
         data = request.json
-        new_post = Post(uid = g.uid,title = data["title"],text = data["text"],kind = data["kind"],date = datetime.datetime.now())
+        pics = data["pictures"]
+        pics_urls = [] # 上传到minio的url
+        for pic in pics:
+            pics_urls.append(upload_to_minio(pic["picture"].encode(),POST_PICS_BKT))
+        pics_urls = json.dumps(pics_urls)
+        if data.get("location") == None:
+            data["location"] = ""
+        search = data["title"]+data["location"]
+        for item in data["items"]:
+            search+=item["name"]+item["description"]+item["category"]
+        new_post = Post(uid = g.uid,title = data["title"],text = data["text"],kind = data["kind"],date = datetime.datetime.now(),pics = pics_urls,location = data["location"],search = search)
         db.session.add(new_post)
         db.session.commit()
         new_items = []
-        search = data["title"]+data["location"]
         for item in data["items"]:
-            search+=item["name"]+item["text"]+item["category"]
-            new_items.append(Item(name = item["name"],pid = new_post.pid,text = item["text"],price = item['price'],category = item["category"]))
+            new_items.append(Item(name = item["name"],pid = new_post.pid,text = item["description"],price = item['price'],category = item["category"]))
         db.session.add_all(new_items)
+
         db.session.commit()
         return jsonify({"err" : 0})
     except Exception as e:
@@ -214,7 +224,8 @@ def editfav():
 #         return jsonify({"err" : 0})
 #     except Exception as e:
 #         return jsonify({"err" : 1})
-
+# cross origin
+@cross_origin(headers=["Content-Type", "Authorization"])
 @server_api.before_request
 def hello():
     t = request.headers.get('Authorization')

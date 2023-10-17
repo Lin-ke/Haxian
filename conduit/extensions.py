@@ -12,7 +12,7 @@ scheduler.add_job(func=get_access_code, trigger='interval', seconds=500, id='get
 
 from minio import Minio
 import datetime
-from minioer import client
+from .minioer import client
 # filename 加密过
 def uploadpic(filename, data, bucket_name):
     year, month = datetime.datetime.now().strftime("%Y-%m").split("-")

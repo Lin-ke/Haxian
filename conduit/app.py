@@ -3,6 +3,7 @@ from .config import *
 from api.api import server_api
 from api.gentoken import token_api
 from .exceptions import InvalidUsage
+from flask_cors import CORS
 # extensions 是flask扩展
 # logger也可以放进去
 
@@ -25,6 +26,7 @@ def create_app(config_object=Config()):
     """
     
     app = Flask(__name__.split('.')[0])
+    CORS(app)
     app.url_map.strict_slashes = False
     app.config.from_object(config_object)
     register_extensions(app)
@@ -49,6 +51,8 @@ def register_models(app):
 
 def register_blueprints(app):
     """Register Flask blueprints."""
+    CORS(server_api)
+    CORS(token_api)
     app.register_blueprint(server_api)
     app.register_blueprint(token_api)
 
