@@ -2,14 +2,12 @@ from typing import Dict
 from flask import Blueprint, session, request,g,Response,jsonify
 import json
 from sqlalchemy import select,or_
-from sqlalchemy import func
 from api import auth
 from conduit.database import db
 from conduit.models import User,Post,Item,Reply,Favorite
-from conduit.logger import logger
 from api.utils import *
 import datetime
-import time
+from conduit.extensions import client
 
 POST_OPEN = 1
 POST_CLOSE = 2
@@ -73,7 +71,7 @@ def get_post():
         post = db.session.query(Post).filter(Post.pid==pid).first()
         items = db.session.query(Item).filter(Item.pid == pid).all()
         replies = db.session.query(Reply).filter(Reply.pid == pid).all()
-        favorite = db.session.query(Favorite).filter(Favorite.uid == g.uid).filter(Favorite.pid == pid).first()
+        favorite = db.session.query(Favorite).filter(Favorite.uid == g.uid,Favorite.pid == pid).first()
         want_cnt={}
         want_price = {}
         results_replies = replies_dict(replies)
@@ -201,7 +199,18 @@ def editfav():
         return jsonify({"err" : 1})
         
 
-###
+### picture
+from conduit.extensions import client, uploadpic
+@server_api.route("/api/postpic",methods = ["POST"])
+def postpic():
+    try:
+        data = request.json
+        bucket_name = data['kind']
+        for (picname, picdata) in data["data"]:
+            uploadpic(picname, picdata, bucket_name)
+        return jsonify({"err" : 0})
+    except Exception as e:
+        return jsonify({"err" : 1})
 
 @server_api.before_request
 def hello():

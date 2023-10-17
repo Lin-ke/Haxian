@@ -37,7 +37,7 @@ def db_droop_all():
 
 def test_minio():
     from minio import Minio
-    import os
+    import os, datetime
     client = Minio(
 	# endpoint指定的是你Minio的远程IP及端口
     # localhost:39.107.83.124
@@ -51,17 +51,39 @@ def test_minio():
 	# secure指定是否以安全模式创建Minio连接
 	# 建议为False
 	secure= False)
+    year,m =datetime.datetime.now().strftime("%Y-%m").split("-")
     with open("./pics/xt.jpg", "rb") as f:
         bytes_len = os.path.getsize("./pics/xt.jpg")
-        client.put_object("test","xt.jpg",f,bytes_len)
+        client.put_object("test","{}/{}/xt.jpg".format(year,m),f,bytes_len)
     url = client.presigned_get_object("test", "xt.jpg")
     print(url)
+read_policy = "{\n" +\
+    "    \"Version\": \"2012-10-17\",\n" +\
+    "    \"Statement\": [\n" +\
+    "        {\n" +\
+    "            \"Sid\":\"PublicRead\",\n" +\
+    "            \"Effect\": \"Allow\",\n" +\
+    "            \"Principal\": \"*\",\n" +\
+    "            \"Action\": [\n" +\
+    "                \"s3:GetBucketLocation\",\n" +\
+    "                \"s3:GetObject\"\n" +\
+    "            ],\n" +\
+    "            \"Resource\": [\n" +\
+    "                \"arn:aws:s3:::*\"\n" +\
+    "            ]\n" +\
+    "        }\n" +\
+    "    ]\n" +\
+    "}"
 def init_minio():
     from conduit.extensions import client
-    client.make_bucket("reply")
-    client.make_bucket("post")
-    client.make_bucket("item")
-    client.make_bucket("user")
+    for i in ['reply','post','item','user']:
+        if client.bucket_exists(i):
+            #删除
+            client.remove_bucket(i)
+        client.make_bucket(i)
+        #策略
+        client.set_bucket_policy(i,read_policy)
+    
 
 
 
