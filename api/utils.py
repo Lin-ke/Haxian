@@ -4,6 +4,8 @@ import json
 from minio import Minio
 from hashlib import sha256
 import io
+from conduit.extensions import client
+
 minio_conf = {
     'endpoint': '0.0.0.0:9000',
     'access_key': 'admin',
@@ -40,9 +42,7 @@ def reply_dict(reply: Reply)->dict:
     temp = reply.__dict__
     temp.pop('_sa_instance_state')
     return temp
-
 def upload_to_minio(obj:bytes,bucket:str) -> str:
-    client = Minio(**minio_conf)
     name = sha256(obj).hexdigest()
     obj_stream = io.BytesIO(obj)
     client.put_object(bucket_name=bucket, object_name=name,

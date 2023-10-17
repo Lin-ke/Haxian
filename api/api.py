@@ -49,7 +49,10 @@ def get_posts():
             data = request.json
             kind:int = data.get("kind")
             keywords = data.get("keywords")
-            category = data.get("category")
+            # category = data.get("category")
+            category = None
+            num = data.get("num")
+            start = data.get("start")
             posts = db.session.query(Post).filter(Post.kind == kind).filter(Post.status == POST_OPEN)
             if category!=None:
                 items = db.session.query(Item).filter(Item.category == category).filter(Item.status == ITEM_OPEN).all()
@@ -59,7 +62,7 @@ def get_posts():
                 posts = posts.filter(Post.pid.in_(pids))
             for keyword in keywords:
                 posts.filter(or_(Post.text.like(f"%{keyword}%"),Post.search.like(f"%{keyword}%")))
-            results = posts.all()
+            results = posts.order_by(Post.pid.desc()).limit(num).offset(start).all()
             return jsonify(posts_dict(results))
     except:
         return jsonify({"err" : 1})
@@ -200,17 +203,17 @@ def editfav():
         
 
 ### picture
-from conduit.extensions import client, uploadpic
-@server_api.route("/api/postpic",methods = ["POST"])
-def postpic():
-    try:
-        data = request.json
-        bucket_name = data['kind']
-        for (picname, picdata) in data["data"]:
-            uploadpic(picname, picdata, bucket_name)
-        return jsonify({"err" : 0})
-    except Exception as e:
-        return jsonify({"err" : 1})
+# from conduit.extensions import client, uploadpic
+# @server_api.route("/api/postpic",methods = ["POST"])
+# def postpic():
+#     try:
+#         data = request.json
+#         bucket_name = data['kind']
+#         for (picname, picdata) in data["data"]:
+#             uploadpic(picname, picdata, bucket_name)
+#         return jsonify({"err" : 0})
+#     except Exception as e:
+#         return jsonify({"err" : 1})
 
 @server_api.before_request
 def hello():
