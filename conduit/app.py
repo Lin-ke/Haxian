@@ -29,6 +29,8 @@ def create_app(config_object=Config()):
     CORS(app)
     app.url_map.strict_slashes = False
     app.config.from_object(config_object)
+    from .scheduler import get_access_code
+    get_access_code()
     register_extensions(app)
     register_models(app)
     register_blueprints(app)

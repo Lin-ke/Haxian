@@ -29,6 +29,12 @@ def post_dict(post:Post)->dict:
     temp.pop("search")
     temp["pics"] = json.loads(temp["pics"])
     return temp
+def user_dict(user:User)->dict:
+    temp = user.__dict__
+    temp.pop('_sa_instance_state')
+    temp.pop("wlid")
+    temp.pop("name")
+    return temp
 
 def posts_user_dict(posts: List)->dict:
     ret = []

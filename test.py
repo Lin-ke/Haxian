@@ -22,7 +22,7 @@ def get_data_test():
 def get_token_test():
     import requests,json
     args = {
-        "code" : "1FD242211E8F72E543166C95EA0A78C47F07D64AF526734D5A5F9F9280B29B55929D281E2B31C5AA0AEEB68E02CF28EE"
+        "code" : "217BE0657B2AFC47EE43E76A39BD57247FABF6BC4262CB3E5770094F537CBC5EABE8E414B10100816965F2FDF776B832"
     }
     r = requests.get('http://localhost:14535/api/login',params=args)
     print(r.headers)

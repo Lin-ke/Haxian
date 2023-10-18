@@ -18,31 +18,27 @@ FAV_YES = 1
 FAV_NO = 2
 
 server_api = Blueprint('api_data', __name__)
-# return : id, name (test)
-@server_api.route('/api/getdata')
+@server_api.route('/api/personal',methods = ["POST","GET"])
 def get_user_data():
-    result, info = auth.verify_token(g.get("token"))
-    if result:
-        user_id = info["id"]
-        user_name = info["name"]
-    # 查询：db.session.query(User).filter(User.id == user_id).first()
-    user_name = "John1"
-    # result = db.session.execute(select(User).where(User.id == user_id))
-    result = db.session.query(User).filter(User.name == user_name).first()
-    if result is None:
-        return jsonify({
-            "err" : 0,
-            "data" : {
-        }})
-    return jsonify(
-        {
-            "err": 0,
-            "data": {
-                "id": result.id,
-                "name": result.name
-            }
-        }
-    )
+    try:
+        user_id = g.uid
+        if request.method == "GET":
+            result = db.session.query(User).filter(User.id == user_id).first()
+            if result is None:
+                raise
+            return jsonify(user_dict(result))
+        else: # "POST"
+            result = db.session.query(User).filter(User.id == user_id).first()
+            if result is None:
+                raise
+            # update
+            data = request.json
+            result.phone = data["phone"]; result.email = data["email"]; result.signiture = data["signiture"]; result.qq = data["qq"]; result.wx = data["wx"];
+            db.session.commit()
+            return jsonify({"err" : 0})
+    except:
+        return jsonify({"err" : 1})
+
 
 @server_api.route('/api/posts',methods = ["POST"])
 def get_posts():
@@ -235,6 +231,7 @@ def getfavor():
 #     except Exception as e:
 #         return jsonify({"err" : 1})
 # cross origin
+
 @cross_origin(headers=["Content-Type", "Authorization"])
 @server_api.before_request
 def hello():

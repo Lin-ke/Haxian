@@ -6,7 +6,7 @@ HEADERS = {
   "typ": "JWT"
 }
 SALT = "kbugvsvzvbqapqrk"
-EXPIRE_TIME = 72000
+EXPIRE_TIME = 720000
 
 def gen_token(uid,name)->str:
   exp = int(time.time() + EXPIRE_TIME)

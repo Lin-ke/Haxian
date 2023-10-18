@@ -15,6 +15,7 @@ class User(db.Model):
     img_url = Column(Text, default="456")
     phone = Column(String(16))
     email = Column(String(64))
+    signiture = Column(String(64))
     wx = Column(String(64))
     qq = Column(String(16))
     # 用途：快捷填入

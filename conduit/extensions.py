@@ -8,7 +8,8 @@ migrate = Migrate()
 # TODO: init through config
 
 from .scheduler import get_access_code
-scheduler.add_job(func=get_access_code, trigger='interval', seconds=500, id='getacc', name='getacc', replace_existing=True)
+
+scheduler.add_job(func=get_access_code, trigger='interval', seconds=100, id='getacc', name='getacc', replace_existing=True)
 
 from minio import Minio
 import datetime

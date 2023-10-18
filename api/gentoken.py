@@ -15,7 +15,7 @@ def get_wlid_hw(code) -> (bool, str):
     url = "https://open.welink.huaweicloud.com/api/auth/v2/userid?code={}".format(code)
     r = dict(json.loads(requests.get(url, headers=headers).text))
     if r.get('errorcode') is not None:
-        return False, r.get('errormessage', "unknown error")
+        return False, r.get('errorMessage', "unknown error")
     if r.get('code', "1") != "0":
         return False, r.get('message', "unknown error")
     return True, r['userId']
