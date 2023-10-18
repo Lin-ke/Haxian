@@ -210,7 +210,17 @@ def editfav():
         return jsonify({"err" : 0})
     except Exception as e:
         return jsonify({"err" : 1})
-        
+@server_api.route("/api/favorite")
+# 根据用户id获取收藏的帖子
+def getfavor():
+    try:
+        uid = g.uid
+        favorites = db.session.query(Favorite).filter(Favorite.uid == uid).all()
+        pids = [favorite.pid for favorite in favorites]
+        posts = db.session.query(Post).filter(Post.pid.in_(pids)).all()
+        return jsonify(posts_dict(posts))
+    except Exception as e:
+        return jsonify({"err" : 1})
 
 ### picture
 # from conduit.extensions import client, uploadpic
