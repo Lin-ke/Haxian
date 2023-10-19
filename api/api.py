@@ -23,20 +23,31 @@ def get_user_data():
     try:
         user_id = g.uid
         if request.method == "GET":
-            result = db.session.query(User).filter(User.id == user_id).first()
+            result = db.session.query(User).filter(User.uid == user_id).first()
             if result is None:
                 raise
             return jsonify(user_dict(result))
         else: # "POST"
-            result = db.session.query(User).filter(User.id == user_id).first()
+            result = db.session.query(User).filter(User.uid == user_id).first()
             if result is None:
                 raise
             # update
             data = request.json
-            result.phone = data["phone"]; result.email = data["email"]; result.signiture = data["signiture"]; result.qq = data["qq"]; result.wx = data["wx"];
+
+            if data.get("phone") is not None:
+                result.phone = data["phone"]
+            if data.get("email") is not None:
+                result.email = data["email"]
+            if data.get("signature") is not None:
+                result.signature = data["signature"]
+            if data.get("wx") is not None:
+                result.wx = data["wx"]
+            if data.get("qq") is not None:
+                result.qq = data["qq"]
+
             db.session.commit()
             return jsonify({"err" : 0})
-    except:
+    except Exception as e:
         return jsonify({"err" : 1})
 
 
@@ -58,10 +69,18 @@ def get_posts():
                     pids.append(item.__dict__["pid"])
                 posts = posts.filter(Post.pid.in_(pids))
             for keyword in keywords:
-                posts.filter(or_(Post.text.like(f"%{keyword}%"),Post.search.like(f"%{keyword}%")))
+                # 这里f"{keyword}"会报错，可能跟编码有关系 
+                posts = posts.filter(or_(Post.text.like("%{}%".format(keyword)),Post.search.like("%{}%".format(keyword))))
             results = posts.order_by(Post.pid.desc()).limit(num).offset(start).all()
-            return jsonify(posts_user_dict(results))
-    except:
+            results = posts_user_dict(results)
+            for result in results:
+                result["items"] = []
+                items = db.session.query(Item).filter(Item.pid == result["pid"]).all()
+                for item in items:
+                    result["items"].append(item.name)
+            return jsonify(results)
+    except Exception as e:
+        print(e)
         return jsonify({"err" : 1})
 
 @server_api.route('/api/post')
@@ -69,6 +88,8 @@ def get_post():
     try:
         pid = request.args.get("pid")
         post = db.session.query(Post).filter(Post.pid==pid).first()
+        if post is None : raise
+        items_result = []
         items = db.session.query(Item).filter(Item.pid == pid).all()
         replies = db.session.query(Reply).filter(Reply.pid == pid).all()
         favorite = db.session.query(Favorite).filter(Favorite.uid == g.uid,Favorite.pid == pid).first()
@@ -76,21 +97,34 @@ def get_post():
         want_price = {}
         results_replies = replies_dict(replies)
         for item in items:
-            want_cnt[item.iid] = 0
-            want_price[item.iid] = {}
+            want_cnt[str(item.iid)] = 0
+            want_price[str(item.iid)] = {}
+            items_result.append(item_dict(item))
         for reply in results_replies:
-            reply_items = json.loads(reply['items'])
-            for item in reply_items.keys():
-                want_cnt[item]+=1
-                want_price[item][reply['uid']] = reply_items[item]
+            reply_items = reply['items']
+            username = db.session.query(User.name).filter(User.uid == reply['uid']).first()[0]
+            reply["userName"] = username
+            # reply: { ... }
+            # reply_items: [{iid: price}, ...]
+            for item in reply_items:
+                item_name = db.session.query(Item).filter(Item.iid == item["iid"]).first().name
+                want_cnt[str(item["iid"])]+=1
+                want_price[str(item["iid"])][username] = item["price"]
+                item["name"] = item_name
         results = post_dict(post)
         if post.uid != g.uid:
             results["replies"] = []
         else:
             results["replies"] = results_replies
         results["is_favorite"] = favorite is not None        
-        results["want_cnt"] = want_cnt
-        results["want_price"] = want_price
+        # results["want_cnt"] = want_cnt
+        results["items"] = items_result
+        # if g.uid != post.uid:
+        #     results["want_price"] = {}
+        # results["want_price"] = want_price
+        for item in items_result:
+            item["want_cnt"] = want_cnt[str(item["iid"])]
+            item["want_price"] = want_price[str(item["iid"])]
         return jsonify(results)
     except Exception as e:
         return jsonify({"err" : 1})
@@ -108,7 +142,11 @@ def get_replies_by_post():
     pid = request.args.get("pid")
     try:
         replies = db.session.query(Reply).join(Post).filter(Post.pid == pid).all()
-        return jsonify(replies_dict(replies))
+        replies = replies_dict(replies)
+        for reply in replies:
+            username = db.session.query(User.name).filter(User.uid == reply['uid']).first()[0]
+            reply["userName"] = username
+        return jsonify(replies)
     except Exception as e:
         return jsonify({"err" : 1})
     
@@ -149,24 +187,33 @@ def reply():
     try:
         data = request.json
         pid = data['pid']
+        pics = data["pictures"]
+        pics_urls = [] # 上传到minio的url
+        for pic in pics:
+            pics_urls.append(upload_to_minio(pic["picture"].encode(),REPLY_PICS_BKT))
+        pics_urls = json.dumps(pics_urls)
         items = db.session.query(Item).filter(Item.pid == pid).all()
         items = [item.iid for item in items]
-        for item in data['items'].keys():
-            if int(item) not in items:
+        # for item in data['items'].keys():
+        #     if int(item) not in items:
+        #         return jsonify({"err" : 1})
+        for item in data['items']:
+            if item["iid"] not in items:
                 return jsonify({"err" : 1})
-        new_reply = Reply(uid = g.uid, text = data['text'],pid = pid,items = json.dumps(data['items']),date = datetime.datetime.now())
+
+        new_reply = Reply(uid = g.uid, text = data['text'],pid = pid,items = json.dumps(data['items']),date = datetime.datetime.now(), pics = pics_urls)
         db.session.add(new_reply)
         db.session.commit()
         return jsonify({"err" : 0})
     except Exception as e:
         return jsonify({"err" : 1})
 
-@server_api.route('/api/editpost')
+@server_api.route('/api/editpost',methods = ["POST"])
 def editpost():
     try:
         data = request.json
         pid = data['pid']
-        modified_items = data["items"]  # 键值对
+        modified_items = data["items"]  # 对象列表
         status = data["status"]
         post = db.session.query(Post).filter(Post.pid==pid).first()
         if post.status == POST_CLOSE:
@@ -176,14 +223,15 @@ def editpost():
             db.session.commit()
             return jsonify({"err" : 0})
         items = db.session.query(Item)
-        for iid,s in modified_items.items():
-            items.filter(Item.iid == iid).update({Item.status :s})
+        for item in modified_items:
+            items.filter(Item.iid == item['iid']).update({Item.status :item['status']})
             db.session.commit()
+        return jsonify({"err" : 0})
     except Exception as e:
         return jsonify({"err" : 1})
 
 ### favorite
-@server_api.route("/api/editfavorite")
+@server_api.route("/api/editfavorite",methods = ["POST"])
 def editfav():
     try:
         data = request.json
@@ -206,18 +254,37 @@ def editfav():
         return jsonify({"err" : 0})
     except Exception as e:
         return jsonify({"err" : 1})
-@server_api.route("/api/favorite")
+    
+@server_api.route("/api/favorite",methods = ["POST"])
 # 根据用户id获取收藏的帖子
 def getfavor():
     try:
-        uid = g.uid
-        favorites = db.session.query(Favorite).filter(Favorite.uid == uid).all()
+        data = request.json
+        favorites = db.session.query(Favorite).filter(Favorite.uid == g.uid).all()
         pids = [favorite.pid for favorite in favorites]
-        posts = db.session.query(Post).filter(Post.pid.in_(pids)).all()
-        return jsonify(posts_dict(posts))
+        num = data.get("num")
+        start = data.get("start")
+        posts = db.session.query(Post, User.name).join(Post, Post.uid == User.uid).filter(Post.status == POST_OPEN).filter(Post.pid.in_(pids))  
+        results = posts.order_by(Post.pid.desc()).limit(num).offset(start).all()
+        results = posts_user_dict(results)
+        for result in results:
+            result["items"] = []
+            items = db.session.query(Item).filter(Item.pid == result["pid"]).all()
+            for item in items:
+                result["items"].append(item.name)
+        return jsonify(results)
     except Exception as e:
+        print(e)
         return jsonify({"err" : 1})
-
+    # try:
+    #     uid = g.uid
+    #     favorites = db.session.query(Favorite).filter(Favorite.uid == uid).all()
+    #     pids = [favorite.pid for favorite in favorites]
+    #     posts = db.session.query(Post).filter(Post.pid.in_(pids)).all()
+    #     return jsonify(posts_dict(posts))
+    # except Exception as e:
+    #     return jsonify({"err" : 1})
+    
 ### picture
 # from conduit.extensions import client, uploadpic
 # @server_api.route("/api/postpic",methods = ["POST"])
@@ -252,6 +319,7 @@ def hello():
 
 @server_api.after_request
 def bye(response):
+    print(response.get_data())
     if g.get("token") != None:
         response.headers['Authorization'] = g.get("token")
     return response

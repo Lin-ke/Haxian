@@ -22,7 +22,7 @@ def get_data_test():
 def get_token_test():
     import requests,json
     args = {
-        "code" : "217BE0657B2AFC47EE43E76A39BD57247FABF6BC4262CB3E5770094F537CBC5EABE8E414B10100816965F2FDF776B832"
+        "code" : "EDF3CEF705B1917F7C058CB37B2FDDD495ABE94DFF9790D3777AE3BEB815DD09DE3C7E5F2ECEED212BE8D1C709789F72"
     }
     r = requests.get('http://localhost:14535/api/login',params=args)
     print(r.headers)
@@ -84,7 +84,6 @@ def init_minio():
         #策略
         client.set_bucket_policy(i,read_policy)
     
-
 
 
 get_token_test()

@@ -33,7 +33,6 @@ def user_dict(user:User)->dict:
     temp = user.__dict__
     temp.pop('_sa_instance_state')
     temp.pop("wlid")
-    temp.pop("name")
     return temp
 
 def posts_user_dict(posts: List)->dict:
@@ -59,6 +58,15 @@ def replies_dict(replies: List[Reply])->dict:
 def reply_dict(reply: Reply)->dict:
     temp = reply.__dict__
     temp.pop('_sa_instance_state')
+    return temp
+def item_dict(item: Item)->dict:
+    temp = {}
+    temp["iid"] = item.iid
+    # temp["pid"] = item.pid
+    temp["name"] = item.name
+    temp["text"] = item.text
+    temp["price"] = item.price
+    temp["category"] = item.category
     return temp
 def upload_to_minio(obj:bytes,bucket:str) -> str:
     name = sha256(obj).hexdigest()
