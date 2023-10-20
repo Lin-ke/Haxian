@@ -3,7 +3,9 @@ from conduit.models import User,Post,Item,Reply
 import json
 from minio import Minio
 from hashlib import sha256
-import io
+import io,base64
+import numpy as np
+from PIL import Image
 from conduit.extensions import client
 self_host = "http://39.107.83.124:9000"
 minio_conf = {
@@ -14,8 +16,8 @@ minio_conf = {
 }
 REPLY_PICS_BKT = "reply"
 POST_PICS_BKT = "post"
-
-
+# RATIO = 8
+IMG_SIZE = (256,256)
 def posts_dict(posts: List[Post])->dict:
     ret = []
     for p in posts:
@@ -45,6 +47,10 @@ def posts_user_dict(posts: List)->dict:
 def post_user_dict(post)->dict:
     temp = post_dict(post[0])
     temp["userName"] = post[1]
+    # templist = []
+    # for pic in temp["pics"]:
+    #     templist.append(pic+".thumbnail")
+    # temp["pics"] = templist
     return temp
 
 def replies_dict(replies: List[Reply])->dict:
@@ -67,10 +73,30 @@ def item_dict(item: Item)->dict:
     temp["text"] = item.text
     temp["price"] = item.price
     temp["category"] = item.category
+    temp["status"] = item.status
     return temp
-def upload_to_minio(obj:bytes,bucket:str) -> str:
-    name = sha256(obj).hexdigest()
-    obj_stream = io.BytesIO(obj)
-    result= client.put_object(bucket_name=bucket, object_name=name,
+def upload_to_minio(obj:str,bucket:str) -> str:
+    obj_bytes = obj.encode()
+    name = sha256(obj_bytes).hexdigest()
+    upload_thumbnail(obj, bucket, name)
+    obj_stream = io.BytesIO(obj_bytes)
+    client.put_object(bucket_name=bucket, object_name=name,
                        data=obj_stream, length=len(obj))
     return bucket+ "/" + name
+
+def upload_thumbnail(obj:str, bucket:str,name:str):
+    t,real_obj = obj.split(',')
+    data = base64.b64decode(real_obj.encode())
+    # resize real_obj as image
+    img = Image.open(io.BytesIO(data))
+    # resize img
+    img.thumbnail(IMG_SIZE)
+    # convert img to bytes
+    img_bytes = io.BytesIO()
+    img.save(img_bytes, format='JPEG')
+    img_bytes = img_bytes.getvalue()
+    img_base64= base64.b64encode(img_bytes)
+    img_str = 'data:image/jpg;base64,'.encode()+img_base64
+    client.put_object(bucket_name=bucket, object_name=name+".thumbnail",
+                       data=io.BytesIO(img_str), length=len(img_str))
+    

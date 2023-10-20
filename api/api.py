@@ -21,7 +21,9 @@ server_api = Blueprint('api_data', __name__)
 @server_api.route('/api/personal',methods = ["POST","GET"])
 def get_user_data():
     try:
-        user_id = g.uid
+        user_id = request.args.get("uid", default=g.uid)
+        if user_id<1:
+            user_id = g.uid
         if request.method == "GET":
             result = db.session.query(User).filter(User.uid == user_id).first()
             if result is None:
@@ -83,6 +85,25 @@ def get_posts():
         print(e)
         return jsonify({"err" : 1})
 
+@server_api.route('/api/myposts',methods = ["POST"])
+def get_my_posts():
+    try:
+        data = request.json
+        num = data.get("num")
+        start = data.get("start")
+        posts = db.session.query(Post, User.name).join(Post, Post.uid == User.uid).filter(Post.uid == g.uid)
+        results = posts.order_by(Post.pid.desc()).limit(num).offset(start).all()
+        results = posts_user_dict(results)
+        for result in results:
+            result["items"] = []
+            items = db.session.query(Item).filter(Item.pid == result["pid"]).all()
+            for item in items:
+                result["items"].append(item.name)
+        return jsonify(results)
+    except Exception as e:
+        print(e)
+        return jsonify({"err" : 1})
+
 @server_api.route('/api/post')
 def get_post():
     try:
@@ -96,6 +117,7 @@ def get_post():
         want_cnt={}
         want_price = {}
         results_replies = replies_dict(replies)
+        username = db.session.query(User.name).filter(User.uid == post.uid).first()[0]
         for item in items:
             want_cnt[str(item.iid)] = 0
             want_price[str(item.iid)] = {}
@@ -112,6 +134,7 @@ def get_post():
                 want_price[str(item["iid"])][username] = item["price"]
                 item["name"] = item_name
         results = post_dict(post)
+        results["own"] = post.uid != g.uid
         if post.uid != g.uid:
             results["replies"] = []
         else:
@@ -119,6 +142,7 @@ def get_post():
         results["is_favorite"] = favorite is not None        
         # results["want_cnt"] = want_cnt
         results["items"] = items_result
+        results['userName'] = username
         # if g.uid != post.uid:
         #     results["want_price"] = {}
         # results["want_price"] = want_price
@@ -129,11 +153,20 @@ def get_post():
     except Exception as e:
         return jsonify({"err" : 1})
 
-@server_api.route('/api/user/replies')
+@server_api.route('/api/replies')
 def get_replies_by_user():
     try:
         replies = db.session.query(Reply).join(Post).filter(Post.uid == g.uid).all()
-        return jsonify(replies_dict(replies))
+        replies = replies_dict(replies)
+        for reply in replies:
+            username = db.session.query(User.name).filter(User.uid == reply['uid']).first()[0]
+            reply["userName"] = username
+            post = db.session.query(Post).filter(Post.pid == reply["pid"]).first()
+            reply["post"] = post.title+"。"+post.text
+            for item in reply["items"]:
+                item_name = db.session.query(Item).filter(Item.iid == item["iid"]).first().name
+                item["name"] = item_name
+        return jsonify(replies)
     except Exception as e:
         return jsonify({"err" : 1})
     
@@ -162,7 +195,7 @@ def publish():
         pics = data["pictures"]
         pics_urls = [] # 上传到minio的url
         for pic in pics:
-            pics_urls.append(upload_to_minio(pic["picture"].encode(),POST_PICS_BKT))
+            pics_urls.append(upload_to_minio(pic["picture"],POST_PICS_BKT))
         pics_urls = json.dumps(pics_urls)
         if data.get("location") == None:
             data["location"] = ""
@@ -190,7 +223,7 @@ def reply():
         pics = data["pictures"]
         pics_urls = [] # 上传到minio的url
         for pic in pics:
-            pics_urls.append(upload_to_minio(pic["picture"].encode(),REPLY_PICS_BKT))
+            pics_urls.append(upload_to_minio(pic["picture"],REPLY_PICS_BKT))
         pics_urls = json.dumps(pics_urls)
         items = db.session.query(Item).filter(Item.pid == pid).all()
         items = [item.iid for item in items]
@@ -214,7 +247,9 @@ def editpost():
         data = request.json
         pid = data['pid']
         modified_items = data["items"]  # 对象列表
-        status = data["status"]
+        status = data.get("status")
+        if status == None:
+            status = POST_OPEN
         post = db.session.query(Post).filter(Post.pid==pid).first()
         if post.status == POST_CLOSE:
             raise
