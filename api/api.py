@@ -134,7 +134,7 @@ def get_post():
                 want_price[str(item["iid"])][username] = item["price"]
                 item["name"] = item_name
         results = post_dict(post)
-        results["own"] = post.uid != g.uid
+        results["own"] = post.uid == g.uid
         if post.uid != g.uid:
             results["replies"] = []
         else:

@@ -16,8 +16,8 @@ minio_conf = {
 }
 REPLY_PICS_BKT = "reply"
 POST_PICS_BKT = "post"
-# RATIO = 8
-IMG_SIZE = (256,256)
+TARGET_SIZE = 1024
+
 def posts_dict(posts: List[Post])->dict:
     ret = []
     for p in posts:
@@ -79,9 +79,9 @@ def upload_to_minio(obj:str,bucket:str) -> str:
     obj_bytes = obj.encode()
     name = sha256(obj_bytes).hexdigest()
     upload_thumbnail(obj, bucket, name)
-    obj_stream = io.BytesIO(obj_bytes)
-    client.put_object(bucket_name=bucket, object_name=name,
-                       data=obj_stream, length=len(obj))
+    # obj_stream = io.BytesIO(obj_bytes)
+    # client.put_object(bucket_name=bucket, object_name=name,
+    #                    data=obj_stream, length=len(obj))
     return bucket+ "/" + name
 
 def upload_thumbnail(obj:str, bucket:str,name:str):
@@ -89,14 +89,26 @@ def upload_thumbnail(obj:str, bucket:str,name:str):
     data = base64.b64decode(real_obj.encode())
     # resize real_obj as image
     img = Image.open(io.BytesIO(data))
-    # resize img
-    img.thumbnail(IMG_SIZE)
+    w,h = img.size
+    if h >= w:
+        RATIO = TARGET_SIZE/h
+        if h > TARGET_SIZE:
+            w,h = int(w*RATIO), TARGET_SIZE
+            img = img.resize((w,h))
+    else:
+        RATIO = TARGET_SIZE/w
+        if w > TARGET_SIZE:
+            w,h = TARGET_SIZE, int(h*RATIO)
+            img = img.resize((w,h))
+
     # convert img to bytes
     img_bytes = io.BytesIO()
     img.save(img_bytes, format='JPEG')
     img_bytes = img_bytes.getvalue()
     img_base64= base64.b64encode(img_bytes)
     img_str = 'data:image/jpg;base64,'.encode()+img_base64
-    client.put_object(bucket_name=bucket, object_name=name+".thumbnail",
+    # client.put_object(bucket_name=bucket, object_name=name+".thumbnail",
+    #                    data=io.BytesIO(img_str), length=len(img_str))
+    client.put_object(bucket_name=bucket, object_name=name,
                        data=io.BytesIO(img_str), length=len(img_str))
     
