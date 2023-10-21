@@ -64,6 +64,7 @@ def replies_dict(replies: List[Reply])->dict:
 def reply_dict(reply: Reply)->dict:
     temp = reply.__dict__
     temp.pop('_sa_instance_state')
+    temp["pics"] = json.loads(temp["pics"])
     return temp
 def item_dict(item: Item)->dict:
     temp = {}
@@ -71,7 +72,7 @@ def item_dict(item: Item)->dict:
     # temp["pid"] = item.pid
     temp["name"] = item.name
     temp["text"] = item.text
-    temp["price"] = item.price
+    temp["price"] = str(item.price)[0:-2]+"."+str(item.price)[-2:]
     temp["category"] = item.category
     temp["status"] = item.status
     return temp
@@ -89,6 +90,8 @@ def upload_thumbnail(obj:str, bucket:str,name:str):
     data = base64.b64decode(real_obj.encode())
     # resize real_obj as image
     img = Image.open(io.BytesIO(data))
+    if img.mode != 'RGB':
+        img = img.convert('RGB')
     w,h = img.size
     if h >= w:
         RATIO = TARGET_SIZE/h

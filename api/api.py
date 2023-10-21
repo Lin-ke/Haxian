@@ -117,7 +117,7 @@ def get_post():
         want_cnt={}
         want_price = {}
         results_replies = replies_dict(replies)
-        username = db.session.query(User.name).filter(User.uid == post.uid).first()[0]
+        postUsername = db.session.query(User.name).filter(User.uid == post.uid).first()[0]
         for item in items:
             want_cnt[str(item.iid)] = 0
             want_price[str(item.iid)] = {}
@@ -136,13 +136,17 @@ def get_post():
         results = post_dict(post)
         results["own"] = post.uid == g.uid
         if post.uid != g.uid:
-            results["replies"] = []
+            new_replies = []
+            for reply in results_replies:
+                if reply["uid"] == g.uid:
+                    new_replies.append(reply)
+            results["replies"] = new_replies
         else:
             results["replies"] = results_replies
         results["is_favorite"] = favorite is not None        
         # results["want_cnt"] = want_cnt
         results["items"] = items_result
-        results['userName'] = username
+        results['userName'] = postUsername
         # if g.uid != post.uid:
         #     results["want_price"] = {}
         # results["want_price"] = want_price
@@ -207,6 +211,9 @@ def publish():
         db.session.commit()
         new_items = []
         for item in data["items"]:
+            if '.' not in item['price']:
+                item['price'] += ".00"
+            item['price'] = "".join(item['price'].split("."))
             new_items.append(Item(name = item["name"],pid = new_post.pid,text = item["description"],price = item['price'],category = item["category"]))
         db.session.add_all(new_items)
 
@@ -348,13 +355,13 @@ def hello():
             else:
                 g.token = t
         except Exception as e:
-            return jsonify({"err": 1})
+            return jsonify({"err": 2})
     else:
-        return jsonify({"err": 1})
-
+        return jsonify({"err": 2})
+from conduit.logger import logger
 @server_api.after_request
 def bye(response):
-    print(response.get_data())
+    # logger.info(request.get_data())
     if g.get("token") != None:
         response.headers['Authorization'] = g.get("token")
     return response

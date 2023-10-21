@@ -25,7 +25,7 @@ def create_app(config_object=Config()):
     :param config_object: The configuration object to use.
     """
     
-    app = Flask(__name__.split('.')[0])
+    app = Flask(__name__.split('.')[0], static_folder='frontend', static_url_path='')
     CORS(app)
     app.url_map.strict_slashes = False
     app.config.from_object(config_object)
