@@ -21,9 +21,11 @@ server_api = Blueprint('api_data', __name__)
 @server_api.route('/api/personal',methods = ["POST","GET"])
 def get_user_data():
     try:
-        user_id = request.args.get("uid", default=g.uid)
+        user_id = request.args.get("uid", default=g.uid) # 传过来的是字符串
+        user_id = int(user_id)
         if user_id<1:
             user_id = g.uid
+
         if request.method == "GET":
             result = db.session.query(User).filter(User.uid == user_id).first()
             if result is None:
