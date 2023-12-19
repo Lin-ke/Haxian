@@ -28,6 +28,8 @@ def verify_token(token):
      return False,{}
   
 def update_token(old_token)->tuple[str, dict]:
+  # if old_token is None:
+  #    raise
   result,info = verify_token(old_token)
   if result:
     if time.time()-info['exp'] > EXPIRE_TIME//2:

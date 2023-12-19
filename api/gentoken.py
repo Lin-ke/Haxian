@@ -30,10 +30,6 @@ def login():
         code = request.args.get("code",default="",type=str)
     if code == "":
         return jsonify({"err": 1, "message" : "provide code"})
-    if code[0] == 'e':
-        return jsonify(
-            {"err": 0,
-            "token":code})
     result, wlid = get_wlid_hw(code)
     print(result)
     if not result:

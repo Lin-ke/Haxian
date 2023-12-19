@@ -138,12 +138,36 @@ def getbyisbn(isbn: str):
     elif ret_json['code'] == 0:
         return {
             "err" : 0,
-            "name" : ret_json['bookName'],
-            "text" : ret_json['bookDesc'],
+            "name" : ret_json["data"].get('bookName', ""),
+            "text" : ret_json["data"].get('bookDesc', ""),
             "category" : "book"
         }
 
 def getbygoodscode(barcode: str):
-    return {
-        "err" : 1
+    
+    headers= {
+    "User-Agent": "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/536.7 (KHTML, like Gecko) Chrome/20.0.1099.0 Safari/536.7 QQBrowser/6.14.15493.201",
+    "Accept-Language": "en-US,en;q=0.9"
     }
+    url_host = "https://www.mxnzp.com/api/barcode/goods/details"
+    params = {
+        "app_id" : "rgihdrm0kslojqvm",
+        "app_secret" : "WnhrK251TWlUUThqaVFWbG5OeGQwdz09",
+        "barcode" : barcode
+    }
+    ret = requests.get(url_host, params, headers=headers)
+    ret_json = json.loads(ret.text)
+    print(ret_json)
+
+    if ret_json['code'] == 1:
+        return {
+            "err" : 0,
+            "name" : ret_json["data"].get('goodsName', ""),
+            "text" : ret_json["data"].get('brand', "")+"," + ret_json["data"].get('supplier', "") + "," +  ret_json["data"].get('standard', ""),
+            "category" : "others"
+        }
+    else:
+        return {
+            "err" : 1,
+            "msg" : ret_json['msg']
+        }

@@ -48,7 +48,7 @@ def get_user_data():
                 result.wx = data["wx"]
             if data.get("qq") is not None:
                 result.qq = data["qq"]
-            if data.get("userName"):
+            if data.get("userName") is not None:
                 result.name = data['userName']
 
             db.session.commit()
@@ -202,6 +202,7 @@ def publish():
         data = request.json
         pics = data["pictures"]
         pics_urls = [] # 上传到minio的url
+        new_items = []
         for pic in pics:
             pics_urls.append(upload_to_minio(pic["picture"],POST_PICS_BKT))
         pics_urls = json.dumps(pics_urls)
@@ -210,17 +211,22 @@ def publish():
         search = data["title"]+data["location"]
         for item in data["items"]:
             search+=item["name"]+item["description"]+item["category"]
+            if '.' not in item['price']:
+                item['price'] += "00"
+                item['price'] = int(item['price'])
+            else:
+                temp = item['price'].split(".")
+                if len(temp[1])==1:
+                    temp[1]+='0'
+                if len(temp[1])>2:
+                    temp[1] = temp[1][:2]
+                item['price'] = int(temp[0]+temp[1])
         new_post = Post(uid = g.uid,title = data["title"],text = data["text"],kind = data["kind"],date = datetime.datetime.now(),pics = pics_urls,location = data["location"],search = search)
         db.session.add(new_post)
         db.session.commit()
-        new_items = []
         for item in data["items"]:
-            if '.' not in item['price']:
-                item['price'] += ".00"
-            item['price'] = "".join(item['price'].split("."))
             new_items.append(Item(name = item["name"],pid = new_post.pid,text = item["description"],price = item['price'],category = item["category"]))
         db.session.add_all(new_items)
-
         db.session.commit()
         return jsonify({"err" : 0})
     except Exception as e:
@@ -309,7 +315,9 @@ def getgoodsinfo():
         # search in db
         goodsinfo = db.session.query(Goods).filter(Goods.barcode==barcode).first()
         if goodsinfo is not None:
-            return jsonify(goods_dict(goodsinfo))
+            gdict = goods_dict(goodsinfo)
+            gdict["err"] = 0
+            return jsonify(gdict)
         if (barcode.startswith('978') or barcode.startswith('979')) and len(barcode) == 13:
             # isbn
             result = getbyisbn(barcode)
@@ -317,7 +325,7 @@ def getgoodsinfo():
                 newgoods = Goods(name = result["name"], text = result["text"], category = result["category"], barcode =barcode)
                 db.session.add(newgoods)
                 db.session.commit()
-                return jsonify(getbyisbn)
+                return jsonify(result)
             else: return jsonify(result)
         else:
             result = getbygoodscode(barcode)
@@ -325,7 +333,7 @@ def getgoodsinfo():
                 newgoods = Goods(name = result["name"], text = result["text"], category = result["category"], barcode = barcode)
                 db.session.add(newgoods)
                 db.session.commit()
-                return jsonify(getbyisbn)
+                return jsonify(result)
             else: return jsonify(result)
 
         
