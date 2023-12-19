@@ -20,6 +20,11 @@ COM_UNREAD = 1
 COM_YES = 2
 COM_NO = 3
 
+CATAGORIES = {
+    "daily":"生活用品",
+    "book": "书籍",
+    "electronic": "电子产品"
+}
 
 server_api = Blueprint('api_data', __name__)
 @server_api.route('/api/personal',methods = ["POST","GET"])
@@ -218,7 +223,8 @@ def publish():
             data["location"] = ""
         search = data["title"]+data["location"]
         for item in data["items"]:
-            search+=item["name"]+item["description"]+item["category"]
+            category = CATAGORIES.get(item["category"],"")
+            search+=item["name"]+item["description"]+category
             if '.' not in item['price']:
                 item['price'] += "00"
                 item['price'] = int(item['price'])
