@@ -74,3 +74,21 @@ class Goods(db.Model):
     text = Column(Text,default="")
     barcode = Column(String(16),default="")
     category = Column(String(64), default="")
+
+class Complaint(db.Model):
+    __tablename__ = 'complaint'
+    __table_args__ = {'extend_existing': True}
+    cid = Column(Integer, primary_key=True,autoincrement=True)
+    pid = Column(Integer, ForeignKey(Post.pid))
+    uid = Column(Integer,ForeignKey(User.uid))
+    text = Column(Text)
+    date = Column(DateTime)
+    status = Column(Integer,default=1) # 1是未处理，2是已处理
+    result = Column(Text,default="") # 处理结果
+class Ban(db.Model):
+    __tablename__ = 'ban'
+    __table_args__ = {'extend_existing': True}
+    bid = Column(Integer, primary_key=True,autoincrement=True)
+    uid = Column(Integer,ForeignKey(User.uid))
+    date = Column(DateTime)
+    enddate = Column(DateTime)
