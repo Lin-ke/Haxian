@@ -83,7 +83,7 @@ class Complaint(db.Model):
     uid = Column(Integer,ForeignKey(User.uid))
     text = Column(Text)
     date = Column(DateTime)
-    status = Column(Integer,default=1) # 1是未处理，2是已处理
+    status = Column(Integer,default=1) # 1是未处理，2是已同意，3是已拒绝
     result = Column(Text,default="") # 处理结果
 class Ban(db.Model):
     __tablename__ = 'ban'

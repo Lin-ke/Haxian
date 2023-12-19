@@ -4,7 +4,7 @@ import json
 from sqlalchemy import select,or_
 from api import auth
 from conduit.database import db
-from conduit.models import User,Post,Item,Reply,Favorite,Goods
+from conduit.models import User,Post,Item,Reply,Favorite,Goods,Complaint,Ban
 from api.utils import *
 import datetime
 from conduit.extensions import client
@@ -16,6 +16,10 @@ ITEM_OPEN = 1
 ITEM_CLOSE = 2
 FAV_YES = 1
 FAV_NO = 2
+COM_UNREAD = 1
+COM_YES = 2
+COM_NO = 3
+
 
 server_api = Blueprint('api_data', __name__)
 @server_api.route('/api/personal',methods = ["POST","GET"])
@@ -199,6 +203,10 @@ def get_reply():
 @server_api.route('/api/publish',methods = ["POST"])
 def publish(): 
     try:
+        ban_info = db.session.query(Ban).filter(Ban.uid == g.uid).order_by(Ban.date.desc()).first()
+        if ban_info is not None:
+            if ban_info.end > datetime.datetime.now():
+                return jsonify({"err" : 2})
         data = request.json
         pics = data["pictures"]
         pics_urls = [] # 上传到minio的url
@@ -311,7 +319,7 @@ def getgoodsinfo():
     try:
         barcode = request.args.get("barcode", default=None)
         if barcode is None: raise
-        barcode = barcode.strip();
+        barcode = barcode.strip()
         # search in db
         goodsinfo = db.session.query(Goods).filter(Goods.barcode==barcode).first()
         if goodsinfo is not None:
@@ -370,7 +378,19 @@ def getfavor():
     #     return jsonify(posts_dict(posts))
     # except Exception as e:
     #     return jsonify({"err" : 1})
-    
+
+@server_api.route("/api/report",methods=["POST"])
+def report():
+    try:
+        data = request.json
+        new_report = Complaint(uid = g.uid, text = data['text'],pid = data['pid'],date = datetime.datetime.now(),status =COM_UNREAD)
+        db.session.add(new_report)
+        db.session.commit()
+        return jsonify({"err" : 0})
+    except Exception as e:
+        print(e)
+        return jsonify({"err" : 1})
+
 ### picture
 # from conduit.extensions import client, uploadpic
 # @server_api.route("/api/postpic",methods = ["POST"])
