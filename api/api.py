@@ -298,7 +298,14 @@ def editfav():
         return jsonify({"err" : 0})
     except Exception as e:
         return jsonify({"err" : 1})
-    
+@server_api.route("/api/isbn",methods=["GET"])
+def getbookinfo():
+    try:
+        data = request.json
+        
+    except Exception as e:
+        print(e)
+
 @server_api.route("/api/favorite",methods = ["POST"])
 # 根据用户id获取收藏的帖子
 def getfavor():

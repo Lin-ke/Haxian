@@ -83,7 +83,14 @@ def init_minio():
         client.make_bucket(i)
         #策略
         client.set_bucket_policy(i,read_policy)
-    
+def get_douban():
+    import requests
+    head = {
+    "User-Agent": "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/536.7 (KHTML, like Gecko) Chrome/20.0.1099.0 Safari/536.7 QQBrowser/6.14.15493.201",
+    "Accept-Language": "en-US,en;q=0.9",
+    }
+    isbn = "9787303271672"
+    t = requests.get("https://book.douban.com/isbn/{}/".format(isbn),headers = head)
+    print(t.text)
 
-
-get_token_test()
+get_douban()

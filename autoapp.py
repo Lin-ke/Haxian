@@ -9,5 +9,5 @@ app = create_app(Config)
 
 @app.route("/")
 def hello():
-    return render_template('index.html')
-    #return "Hi, this is Haxian! We are Hiters, nice to meet you!"
+    # return render_template('index.html')
+    return "Hi, this is Haxian! We are Hiters, nice to meet you!"
