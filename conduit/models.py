@@ -65,3 +65,12 @@ class Favorite(db.Model):
     pid = Column(Integer, ForeignKey(Post.pid))
     uid = Column(Integer,ForeignKey(User.uid))
     date = Column(DateTime)
+# kv
+class Goods(db.Model):
+    __tablename__ = 'goods'
+    __table_args__ = {'extend_existing': True}
+    gid = Column(Integer, primary_key=True,autoincrement=True)
+    name = Column(String(64), default="")
+    text = Column(Text,default="")
+    barcode = Column(String(16),default="")
+    category = Column(String(64), default="")

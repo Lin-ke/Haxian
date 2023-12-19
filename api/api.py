@@ -4,7 +4,7 @@ import json
 from sqlalchemy import select,or_
 from api import auth
 from conduit.database import db
-from conduit.models import User,Post,Item,Reply,Favorite
+from conduit.models import User,Post,Item,Reply,Favorite,Goods
 from api.utils import *
 import datetime
 from conduit.extensions import client
@@ -48,6 +48,8 @@ def get_user_data():
                 result.wx = data["wx"]
             if data.get("qq") is not None:
                 result.qq = data["qq"]
+            if data.get("userName"):
+                result.name = data['userName']
 
             db.session.commit()
             return jsonify({"err" : 0})
@@ -298,13 +300,38 @@ def editfav():
         return jsonify({"err" : 0})
     except Exception as e:
         return jsonify({"err" : 1})
-@server_api.route("/api/isbn",methods=["GET"])
-def getbookinfo():
+@server_api.route("/api/getgoodsinfo",methods=["GET"])
+def getgoodsinfo():
     try:
-        data = request.json
+        barcode = request.args.get("barcode", default=None)
+        if barcode is None: raise
+        barcode = barcode.strip();
+        # search in db
+        goodsinfo = db.session.query(Goods).filter(Goods.barcode==barcode).first()
+        if goodsinfo is not None:
+            return jsonify(goods_dict(goodsinfo))
+        if (barcode.startswith('978') or barcode.startswith('979')) and len(barcode) == 13:
+            # isbn
+            result = getbyisbn(barcode)
+            if(result["err"] == 0):
+                newgoods = Goods(name = result["name"], text = result["text"], category = result["category"], barcode =barcode)
+                db.session.add(newgoods)
+                db.session.commit()
+                return jsonify(getbyisbn)
+            else: return jsonify(result)
+        else:
+            result = getbygoodscode(barcode)
+            if(result["err"] == 0):
+                newgoods = Goods(name = result["name"], text = result["text"], category = result["category"], barcode = barcode)
+                db.session.add(newgoods)
+                db.session.commit()
+                return jsonify(getbyisbn)
+            else: return jsonify(result)
+
         
     except Exception as e:
         print(e)
+        return jsonify({"err" : 1}) 
 
 @server_api.route("/api/favorite",methods = ["POST"])
 # 根据用户id获取收藏的帖子

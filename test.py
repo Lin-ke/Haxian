@@ -13,6 +13,14 @@ def db_test():
             user = User.query.filter_by(name='John{}'.format(str(i))).first()
             db.session.delete(user)
             db.session.commit()
+def db_add_goods():
+    from autoapp import app
+    from conduit.models import Goods
+    from conduit.database import db
+    with app.app_context():
+        goods_new = Goods(name='农夫山泉550ml瓶装水', text="我们不生产水，我们只是大自然的搬运工",category="drink",barcode="6921168509256")    
+        db.session.add(goods_new)
+        db.session.commit()
 
 def get_data_test():
     import requests
@@ -91,6 +99,8 @@ def get_douban():
     }
     isbn = "9787303271672"
     t = requests.get("https://book.douban.com/isbn/{}/".format(isbn),headers = head)
+    from lxml import etree
+    
     print(t.text)
 
-get_douban()
+db_add_goods()

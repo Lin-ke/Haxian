@@ -7,6 +7,8 @@ import io,base64
 import numpy as np
 from PIL import Image
 from conduit.extensions import client
+import requests
+
 self_host = "http://39.107.83.124:9000"
 minio_conf = {
     'endpoint': '0.0.0.0:9000',
@@ -114,4 +116,34 @@ def upload_thumbnail(obj:str, bucket:str,name:str):
     #                    data=io.BytesIO(img_str), length=len(img_str))
     client.put_object(bucket_name=bucket, object_name=name,
                        data=io.BytesIO(img_str), length=len(img_str))
-    
+def goods_dict(goods: List)->dict:
+    temp = goods.__dict__
+    temp.pop('_sa_instance_state')
+    return temp
+# 字段与那边一致
+def getbyisbn(isbn: str):
+    url = "http://47.99.80.202:6066/openApi/getInfoByIsbn?isbn={}&appKey=ae1718d4587744b0b79f940fbef69e77".format(isbn)
+    headers= {
+    "User-Agent": "Mozilla/5.0 (Windows NT 6.1) AppleWebKit/536.7 (KHTML, like Gecko) Chrome/20.0.1099.0 Safari/536.7 QQBrowser/6.14.15493.201",
+    "Accept-Language": "en-US,en;q=0.9"
+    }
+    ret = requests.get(url, headers=headers)
+    ret_json = json.loads(ret.text)
+
+    if ret_json['code'] == 1:
+        return {
+            "err" : 1,
+            "msg" : ret_json['msg']
+        }
+    elif ret_json['code'] == 0:
+        return {
+            "err" : 0,
+            "name" : ret_json['bookName'],
+            "text" : ret_json['bookDesc'],
+            "category" : "book"
+        }
+
+def getbygoodscode(barcode: str):
+    return {
+        "err" : 1
+    }
